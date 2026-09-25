@@ -1,0 +1,31 @@
+{
+  "$schema": "https://firebase.google.com/schemas/firestore/blueprint.json",
+  "entities": {
+    "users": {
+      "path": "users/{userId}",
+      "description": "User profile records",
+      "fields": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      }
+    },
+    "conversations": {
+      "path": "users/{userId}/conversations/{conversationId}",
+      "description": "Chat conversations stored per user",
+      "fields": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "model": { "type": "string" },
+        "messages": { "type": "array" },
+        "pinned": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      }
+    }
+  }
+}

@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #090a10;
+    --bg-secondary: #18181b;
+    --bg-sidebar: #0f1016;
+    --border-color: #27272a;
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #06b6d4;
+  }
+
+  html.light {
+    --bg-main: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-sidebar: #f1f5f9;
+    --border-color: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-muted: #475569;
+    --accent: #0284c7;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+  }
+
+  code, pre, kbd {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Code block styles */
+pre code {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Markdown table styling */
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid #3f3f46;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+html.light .markdown-body th,
+html.light .markdown-body td {
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.markdown-body th {
+  background-color: #27272a;
+  font-weight: 600;
+}
+
+html.light .markdown-body th {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.markdown-body tr:nth-child(even) {
+  background-color: rgba(39, 39, 42, 0.4);
+}
+
+html.light .markdown-body tr:nth-child(even) {
+  background-color: rgba(241, 245, 249, 0.7);
+}
+
+/* 3D Kinetic Emergence Animation for AI Output */
+@keyframes spatialMaterialize {
+  0% {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(12deg) translateY(24px) translateZ(-40px) scale(0.96);
+    filter: blur(4px);
+  }
+  60% {
+    opacity: 0.9;
+    transform: perspective(1000px) rotateX(-2deg) translateY(-2px) translateZ(10px) scale(1.01);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(0deg) translateY(0px) translateZ(0px) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-3d-spatial {
+  animation: spatialMaterialize 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity, filter;
+  transform-style: preserve-3d;
+}
+
+/* 3D Holographic Border Pulse */
+@keyframes holographicGlow {
+  0%, 100% {
+    box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15), 0 0 0 1px rgba(6, 182, 212, 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 30px 2px rgba(139, 92, 246, 0.25), 0 0 0 1.5px rgba(139, 92, 246, 0.4);
+  }
+}
+
+.holographic-card-dark {
+  animation: holographicGlow 4s ease-in-out infinite;
+}
+
+.holographic-card-light {
+  box-shadow: 0 10px 25px -3px rgba(14, 165, 233, 0.12), 0 4px 6px -4px rgba(14, 165, 233, 0.1), 0 0 0 1px rgba(14, 165, 233, 0.2);
+}

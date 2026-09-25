@@ -1,0 +1,6 @@
+{
+  "name": "SpaceBunny Chat",
+  "description": "An advanced ChatGPT-like conversational AI app powered by the Space Bunny Alpha reasoning model on OpenRouter.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
