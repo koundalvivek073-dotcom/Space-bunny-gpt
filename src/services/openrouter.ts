@@ -1,4 +1,5 @@
 import { DEFAULT_MODEL_ID } from '../types/chat';
+import { loadSettings } from './storage';
 
 export interface StreamChatParams {
   model?: string;
@@ -9,6 +10,18 @@ export interface StreamChatParams {
   onChunk: (delta: { content?: string; reasoning?: string }) => void;
 }
 
+export function getActiveApiKey(): string {
+  try {
+    const userKey = loadSettings().apiKey?.trim();
+    if (userKey) return userKey;
+  } catch {}
+
+  const envKey = (import.meta as any).env?.VITE_OPENROUTER_API_KEY?.trim();
+  if (envKey) return envKey;
+
+  return '';
+}
+
 export async function streamChatCompletion({
   model = DEFAULT_MODEL_ID,
   messages,
@@ -17,8 +30,7 @@ export async function streamChatCompletion({
   signal,
   onChunk,
 }: StreamChatParams): Promise<{ fullContent: string; fullReasoning: string }> {
-  // Always route through backend proxy which securely injects server-stored OPENROUTER_API_KEY
-  const endpoint = '/api/openrouter/api/v1/chat/completions';
+  const apiKey = getActiveApiKey();
 
   const payload = {
     model: model || DEFAULT_MODEL_ID,
@@ -28,15 +40,44 @@ export async function streamChatCompletion({
     max_tokens: maxTokens,
   };
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Title': 'SpaceBunny Chat',
-    },
-    body: JSON.stringify(payload),
-    signal,
-  });
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://chat.spacebunny.ai',
+    'X-Title': 'SpaceBunny Chat',
+  };
+
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  // Try local / proxy endpoint first, fallback to direct OpenRouter API
+  let response: Response;
+  try {
+    response = await fetch('/api/openrouter/api/v1/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal,
+    });
+
+    // If endpoint returns 404 (static host like Netlify without Express server), call direct OpenRouter API
+    if (response.status === 404) {
+      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal,
+      });
+    }
+  } catch {
+    // Direct OpenRouter API fallback
+    response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal,
+    });
+  }
 
   if (!response.ok) {
     let errorMessage = `API Error ${response.status}: ${response.statusText}`;
@@ -126,9 +167,17 @@ export async function streamChatCompletion({
 
 export async function checkServerStatus(): Promise<{ connected: boolean; label?: string; limit?: string; error?: string }> {
   try {
-    const res = await fetch('/api/openrouter/status');
+    const key = getActiveApiKey();
+    const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+      headers: { Authorization: `Bearer ${key}` },
+    });
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      return {
+        connected: true,
+        label: data?.data?.label || 'Space Bunny Active',
+        limit: data?.data?.limit != null ? `$${data.data.limit}` : 'Active',
+      };
     }
     return { connected: true, label: 'Space Bunny Active' };
   } catch (err: any) {

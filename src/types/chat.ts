@@ -28,6 +28,7 @@ export interface AppSettings {
   maxTokens: number;
   showReasoning: boolean;
   theme: 'dark' | 'light';
+  apiKey?: string;
 }
 
 export interface ModelOption {

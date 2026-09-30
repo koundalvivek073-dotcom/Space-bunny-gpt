@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Cpu, Sliders, ShieldCheck, Trash2, Download, Upload, Sun, Moon } from 'lucide-react';
+import { X, Cpu, Sliders, ShieldCheck, Trash2, Download, Upload, Sun, Moon, Key } from 'lucide-react';
 import { AppSettings, AVAILABLE_MODELS, DEFAULT_MODEL_ID } from '../types/chat';
 import { checkServerStatus } from '../services/openrouter';
 import { SPECIFICITY_SYSTEM_PROMPT } from '../services/storage';
@@ -149,14 +149,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div>
                 <span className="font-medium text-xs">Model Gateway Status</span>
                 <p className="text-[11px] text-neutral-400">
-                  {statusInfo?.label || 'Space Bunny Alpha Connected'} · Managed securely server-side
+                  {statusInfo?.label || 'Space Bunny Alpha Connected'} · Active & Ready
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-1 text-[11px] text-emerald-500 font-mono bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Protected</span>
+              <span>Ready</span>
             </div>
+          </div>
+
+          {/* OpenRouter API Key */}
+          <div className="space-y-1.5">
+            <label className="font-medium flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-cyan-500" />
+                OpenRouter API Key
+              </span>
+              <span className="text-[10px] text-neutral-400 font-normal">Optional if preconfigured in .env</span>
+            </label>
+            <input
+              type="password"
+              placeholder="sk-or-v1-..."
+              value={formData.apiKey || ''}
+              onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+              className={`w-full p-2.5 rounded-lg border text-xs font-mono focus:outline-hidden transition-colors ${
+                isLight
+                  ? 'bg-slate-50 border-slate-200 text-slate-800 focus:border-sky-500'
+                  : 'bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-cyan-500'
+              }`}
+            />
+            <p className="text-[11px] text-neutral-400">
+              Your API key is saved locally in your browser and used directly for model completions.
+            </p>
           </div>
 
           {/* Model Selection */}

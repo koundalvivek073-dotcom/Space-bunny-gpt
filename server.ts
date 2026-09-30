@@ -30,7 +30,7 @@ app.post('/api/openrouter/api/v1/chat/completions', async (req, res) => {
     // If client supplied a custom authorization header, use it; otherwise use server-stored OPENROUTER_API_KEY
     let authHeader = req.headers.authorization;
     if (!authHeader || authHeader === 'Bearer' || authHeader === 'Bearer undefined' || authHeader === 'Bearer null') {
-      const serverKey = process.env.OPENROUTER_API_KEY || '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';
+      const serverKey = process.env.OPENROUTER_API_KEY || '';
       authHeader = `Bearer ${serverKey}`;
     }
 
@@ -78,7 +78,7 @@ app.post('/api/openrouter/api/v1/chat/completions', async (req, res) => {
 // Check model connection status endpoint without exposing keys
 app.get('/api/openrouter/status', async (req, res) => {
   try {
-    const serverKey = process.env.OPENROUTER_API_KEY || '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';
+    const serverKey = process.env.OPENROUTER_API_KEY || '';
     const testRes = await fetch('https://openrouter.ai/api/v1/auth/key', {
       method: 'GET',
       headers: { Authorization: `Bearer ${serverKey}` },
