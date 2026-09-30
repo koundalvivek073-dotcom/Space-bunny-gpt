@@ -2,6 +2,8 @@
 
 A high-performance, precision AI assistant featuring interactive 3D WebGL spatial dynamics, voice synthesis controls, and 100% private local storage.
 
+🌐 **Live Demo:** [https://mint-gpt.netlify.app](https://mint-gpt.netlify.app)
+
 ---
 
 ## ✨ Features
