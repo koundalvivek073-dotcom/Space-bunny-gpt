@@ -15,8 +15,6 @@ import {
   Compass,
   Mic,
   MicOff,
-  Globe,
-  MapPin,
   Loader2,
   Sun,
   Moon,
@@ -333,43 +331,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 </div>
               </>
             )}
-          </div>
-
-          {/* Grounding toggles */}
-          <div className={`hidden md:flex items-center gap-1.5 border-l pl-3 ${isLight ? 'border-slate-200' : 'border-neutral-800'}`}>
-            <button
-              onClick={onToggleSearchGrounding}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                useSearchGrounding
-                  ? isLight
-                    ? 'bg-sky-100 text-sky-700 border border-sky-300 font-medium'
-                    : 'bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-medium'
-                  : isLight
-                  ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/60'
-              }`}
-              title="Ground answers with live Google Search web data"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>Web Search</span>
-            </button>
-
-            <button
-              onClick={onToggleMapsGrounding}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                useMapsGrounding
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium'
-                    : 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 font-medium'
-                  : isLight
-                  ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/60'
-              }`}
-              title="Ground answers with live Google Maps place & reviews data"
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              <span>Google Maps</span>
-            </button>
           </div>
         </div>
 

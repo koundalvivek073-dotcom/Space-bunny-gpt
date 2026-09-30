@@ -96,6 +96,11 @@ async function playViaWebAudio(base64Data: string, onEnded?: () => void): Promis
 }
 
 export function stopAudio(): void {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
+  }
   if (activeAudio) {
     activeAudio.pause();
     activeAudio.currentTime = 0;

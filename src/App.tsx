@@ -14,13 +14,8 @@ import {
   saveActiveConversationId,
   exportConversationToMarkdown,
   exportConversationToJSON,
-  syncConversationsFromFirestore,
-  saveConversationToFirestore,
-  deleteConversationFromFirestore,
 } from './services/storage';
 import { streamChatCompletion } from './services/openrouter';
-import { auth } from './services/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { SettingsModal } from './components/SettingsModal';
@@ -34,9 +29,6 @@ export default function App() {
 
   // 3D background scroll effect tracking
   const [chatScrollY, setChatScrollY] = useState<number>(0);
-
-  // Firebase Auth state
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // Grounding states
   const [useSearchGrounding, setUseSearchGrounding] = useState<boolean>(false);
@@ -71,44 +63,12 @@ export default function App() {
     saveSettings(updated);
   };
 
-  // Listen to Firebase Auth state
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        // Load cloud conversations from Firestore
-        const remoteList = await syncConversationsFromFirestore(user.uid);
-        if (remoteList.length > 0) {
-          // Merge local and remote
-          const merged = [...remoteList];
-          for (const local of conversations) {
-            if (!merged.some((m) => m.id === local.id)) {
-              merged.push(local);
-              // Save to Firestore
-              saveConversationToFirestore(user.uid, local);
-            }
-          }
-          setConversations(merged);
-          if (!activeId && merged[0]) {
-            setActiveId(merged[0].id);
-          }
-        } else {
-          // Upload existing local conversations to Firestore
-          for (const c of conversations) {
-            await saveConversationToFirestore(user.uid, c);
-          }
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Save conversations whenever they change
+  // Save conversations to frontend localStorage whenever they change
   useEffect(() => {
     saveConversations(conversations);
   }, [conversations]);
 
-  // Save active conversation id
+  // Save active conversation id to frontend localStorage
   useEffect(() => {
     saveActiveConversationId(activeId);
   }, [activeId]);
@@ -144,10 +104,6 @@ export default function App() {
     };
     setConversations((prev) => [newConv, ...prev]);
     setActiveId(newConv.id);
-
-    if (currentUser) {
-      saveConversationToFirestore(currentUser.uid, newConv);
-    }
   };
 
   // Select conversation
@@ -168,10 +124,6 @@ export default function App() {
       }
       return updated;
     });
-
-    if (currentUser) {
-      deleteConversationFromFirestore(currentUser.uid, id);
-    }
   };
 
   // Rename conversation
@@ -179,11 +131,7 @@ export default function App() {
     setConversations((prev) =>
       prev.map((c) => {
         if (c.id === id) {
-          const updated = { ...c, title: newTitle, updatedAt: Date.now() };
-          if (currentUser) {
-            saveConversationToFirestore(currentUser.uid, updated);
-          }
-          return updated;
+          return { ...c, title: newTitle, updatedAt: Date.now() };
         }
         return c;
       })
@@ -196,11 +144,7 @@ export default function App() {
     setConversations((prev) =>
       prev.map((c) => {
         if (c.id === id) {
-          const updated = { ...c, pinned: !c.pinned };
-          if (currentUser) {
-            saveConversationToFirestore(currentUser.uid, updated);
-          }
-          return updated;
+          return { ...c, pinned: !c.pinned };
         }
         return c;
       })
@@ -218,11 +162,6 @@ export default function App() {
   const handleClearAllChats = () => {
     if (isStreaming) {
       handleStopStreaming();
-    }
-    if (currentUser) {
-      for (const c of conversations) {
-        deleteConversationFromFirestore(currentUser.uid, c.id);
-      }
     }
     setConversations([]);
     setActiveId(null);
@@ -285,17 +224,9 @@ export default function App() {
         if (Array.isArray(imported)) {
           setConversations((prev) => [...imported, ...prev]);
           if (imported[0]?.id) setActiveId(imported[0].id);
-          if (currentUser) {
-            for (const c of imported) {
-              saveConversationToFirestore(currentUser.uid, c);
-            }
-          }
         } else if (imported.id && imported.messages) {
           setConversations((prev) => [imported, ...prev]);
           setActiveId(imported.id);
-          if (currentUser) {
-            saveConversationToFirestore(currentUser.uid, imported);
-          }
         }
       } catch (err) {
         alert('Failed to parse imported file. Please upload a valid JSON chat file.');
@@ -367,84 +298,6 @@ export default function App() {
       );
     }
 
-    if (currentUser) {
-      saveConversationToFirestore(currentUser.uid, updatedConv);
-    }
-
-    // Check if Grounded search/maps mode is enabled
-    if (useSearchGrounding || useMapsGrounding) {
-      setIsStreaming(true);
-      setStreamingReasoning('');
-      setStreamingContent('');
-
-      try {
-        let latLng: { latitude: number; longitude: number } | undefined = undefined;
-        if (useMapsGrounding && navigator.geolocation) {
-          try {
-            const pos: GeolocationPosition = await new Promise((res, rej) =>
-              navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000 })
-            );
-            latLng = {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            };
-          } catch {}
-        }
-
-        const res = await fetch('/api/gemini/grounded-chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: text,
-            useMaps: useMapsGrounding,
-            latLng,
-          }),
-        });
-
-        const data = await res.json();
-        let formattedContent = data.text || '';
-
-        // Append grounding citations if returned
-        if (Array.isArray(data.groundingChunks) && data.groundingChunks.length > 0) {
-          formattedContent += '\n\n**Sources & Grounding References:**\n';
-          data.groundingChunks.forEach((chunk: any, i: number) => {
-            if (chunk.web?.uri) {
-              formattedContent += `- [${chunk.web.title || chunk.web.uri}](${chunk.web.uri})\n`;
-            } else if (chunk.maps?.uri) {
-              formattedContent += `- 📍 [${chunk.maps.title || 'View on Google Maps'}](${chunk.maps.uri})\n`;
-            }
-          });
-        }
-
-        const groundedAssistantMsg: ChatMessage = {
-          id: `msg_${Date.now()}_assistant`,
-          role: 'assistant',
-          content: formattedContent,
-          timestamp: Date.now(),
-          model: 'gemini-3.5-flash',
-        };
-
-        const finalConv = {
-          ...updatedConv,
-          messages: [...updatedConv.messages, groundedAssistantMsg],
-          updatedAt: Date.now(),
-        };
-
-        setConversations((prev) =>
-          prev.map((c) => (c.id === updatedConv.id ? finalConv : c))
-        );
-
-        if (currentUser) {
-          saveConversationToFirestore(currentUser.uid, finalConv);
-        }
-      } catch (err: any) {
-        console.error('Grounded error:', err);
-      } finally {
-        setIsStreaming(false);
-      }
-      return;
-    }
-
     // Default flow: Space Bunny Alpha on OpenRouter
     const apiMessages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
     if (settings.systemPrompt?.trim()) {
@@ -512,10 +365,6 @@ export default function App() {
       setConversations((prev) =>
         prev.map((c) => (c.id === updatedConv.id ? finalConv : c))
       );
-
-      if (currentUser) {
-        saveConversationToFirestore(currentUser.uid, finalConv);
-      }
     } catch (err: any) {
       if (controller.signal.aborted) {
         if (accumulatedContent || accumulatedReasoning) {
@@ -535,9 +384,6 @@ export default function App() {
           setConversations((prev) =>
             prev.map((c) => (c.id === updatedConv.id ? finalConv : c))
           );
-          if (currentUser) {
-            saveConversationToFirestore(currentUser.uid, finalConv);
-          }
         }
       } else {
         const errorMsg: ChatMessage = {
@@ -556,9 +402,6 @@ export default function App() {
         setConversations((prev) =>
           prev.map((c) => (c.id === updatedConv.id ? finalConv : c))
         );
-        if (currentUser) {
-          saveConversationToFirestore(currentUser.uid, finalConv);
-        }
       }
     } finally {
       setIsStreaming(false);
@@ -608,11 +451,10 @@ export default function App() {
         isGenerating={isStreaming}
       />
 
-      {/* Sidebar with Search & Firebase User Status */}
+      {/* Sidebar with Search & Local Chat History */}
       <Sidebar
         conversations={conversations}
         activeId={activeId}
-        currentUser={currentUser}
         onSelectConversation={handleSelectConversation}
         onNewChat={handleNewChat}
         onDeleteConversation={handleDeleteConversation}
@@ -626,7 +468,7 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Main Chat Area with TTS Read Aloud, Speech Dictation, Grounding & Scroll tracker */}
+      {/* Main Chat Area with TTS Read Aloud, Speech Dictation & Scroll tracker */}
       <ChatArea
         conversation={activeConversation}
         onSendMessage={handleSendMessage}

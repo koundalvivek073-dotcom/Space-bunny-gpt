@@ -47,7 +47,15 @@ app.post('/api/openrouter/api/v1/chat/completions', async (req, res) => {
 
     res.status(response.status);
     response.headers.forEach((value, key) => {
-      res.setHeader(key, value);
+      const lowerKey = key.toLowerCase();
+      if (
+        lowerKey !== 'content-encoding' &&
+        lowerKey !== 'content-length' &&
+        lowerKey !== 'transfer-encoding' &&
+        lowerKey !== 'connection'
+      ) {
+        res.setHeader(key, value);
+      }
     });
 
     if (response.body) {

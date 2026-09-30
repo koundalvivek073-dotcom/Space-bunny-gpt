@@ -7,10 +7,53 @@ interface MarkdownRendererProps {
   isStreaming?: boolean;
 }
 
+// Custom link renderer to make all links open reliably in external tabs
+const renderer = new marked.Renderer();
+
+renderer.link = ({ href, title, text }: { href: string; title?: string | null; text: string }) => {
+  let validHref = href || '';
+  if (validHref.startsWith('www.')) {
+    validHref = `https://${validHref}`;
+  } else if (
+    !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(validHref) &&
+    !validHref.startsWith('/') &&
+    !validHref.startsWith('#')
+  ) {
+    validHref = `https://${validHref}`;
+  }
+
+  const titleAttr = title ? ` title="${title}"` : '';
+  return `<a href="${validHref}"${titleAttr} target="_blank" rel="noopener noreferrer" class="external-link font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 underline underline-offset-2 cursor-pointer transition-colors">${text}</a>`;
+};
+
 // Configure marked options
 marked.setOptions({
   gfm: true,
   breaks: true,
+});
+
+marked.use({ renderer });
+
+// Hook into DOMPurify to ensure target="_blank" and rel="noopener noreferrer" on all anchor tags
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    let href = node.getAttribute('href');
+    if (href) {
+      if (href.startsWith('www.')) {
+        href = 'https://' + href;
+        node.setAttribute('href', href);
+      } else if (
+        !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href) &&
+        !href.startsWith('/') &&
+        !href.startsWith('#')
+      ) {
+        href = 'https://' + href;
+        node.setAttribute('href', href);
+      }
+    }
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
 });
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
@@ -19,16 +62,24 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
     try {
       const rawHtml = marked.parse(content) as string;
       return DOMPurify.sanitize(rawHtml, {
-        ADD_ATTR: ['target', 'rel'],
+        ADD_ATTR: ['target', 'rel', 'class'],
       });
     } catch {
       return content;
     }
   }, [content]);
 
-  // Hook to handle code block copying via delegation
+  // Hook to handle code block copying and link clicks
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
+
+    // Handle external links explicitly
+    const anchor = target.closest('a') as HTMLAnchorElement | null;
+    if (anchor && anchor.href) {
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+    }
+
     const copyBtn = target.closest('[data-code-copy]') as HTMLButtonElement | null;
     if (copyBtn) {
       const codeId = copyBtn.getAttribute('data-code-copy');

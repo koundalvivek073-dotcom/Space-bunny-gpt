@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Copy, Check, RotateCw, Edit3, AlertCircle, Volume2, VolumeX, Loader2, Sparkles, Box } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Copy, Check, RotateCw, Edit3, AlertCircle, Volume2, VolumeX, Square, Loader2, Sparkles, Box } from 'lucide-react';
 import { ChatMessage } from '../types/chat';
 import { FormattedMessage } from './FormattedMessage';
 import { ReasoningBlock } from './ReasoningBlock';
@@ -35,6 +35,15 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   const isUser = message.role === 'user';
   const isLight = theme === 'light';
 
+  // Stop audio on unmount
+  useEffect(() => {
+    return () => {
+      if (isPlayingAudio) {
+        stopAudio();
+      }
+    };
+  }, [isPlayingAudio]);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
     setCopied(true);
@@ -49,11 +58,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     }
   };
 
-  // Text-To-Speech handler
+  // Text-To-Speech handler - toggle play/stop
   const handleToggleSpeak = async () => {
-    if (isPlayingAudio) {
+    if (isPlayingAudio || isLoadingAudio) {
       stopAudio();
       setIsPlayingAudio(false);
+      setIsLoadingAudio(false);
       return;
     }
 
@@ -80,8 +90,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(message.content.slice(0, 800));
-        utterance.rate = 1.05;
+        const utterance = new SpeechSynthesisUtterance(message.content.slice(0, 1000));
+        utterance.rate = 1.0;
         utterance.onend = () => setIsPlayingAudio(false);
         utterance.onerror = () => setIsPlayingAudio(false);
         setIsPlayingAudio(true);
@@ -262,35 +272,34 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             <div className={`flex items-center gap-2 pt-2 text-xs border-t ${
               isLight ? 'border-slate-200 text-slate-600' : 'border-neutral-800/60 text-neutral-400'
             }`}>
-              {/* Text-To-Speech Button */}
+              {/* Text-To-Speech / Voice Output Button with Stop state */}
               <button
                 onClick={handleToggleSpeak}
-                disabled={isLoadingAudio}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
-                  isPlayingAudio
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all font-medium text-xs ${
+                  isPlayingAudio || isLoadingAudio
                     ? isLight
-                      ? 'bg-sky-100 text-sky-800 border border-sky-300 font-medium'
-                      : 'bg-cyan-950/80 text-cyan-300 border border-cyan-700/60'
+                      ? 'bg-rose-100 text-rose-700 border border-rose-300 hover:bg-rose-200 shadow-xs'
+                      : 'bg-rose-950/80 text-rose-300 border border-rose-700/60 hover:bg-rose-900/80 shadow-xs'
                     : isLight
-                    ? 'hover:bg-slate-200/80 hover:text-slate-900'
-                    : 'hover:bg-neutral-800 hover:text-neutral-200'
+                    ? 'hover:bg-slate-200/80 text-slate-600 hover:text-slate-900'
+                    : 'hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200'
                 }`}
-                title={isPlayingAudio ? 'Stop reading' : 'Read aloud with AI voice'}
+                title={isPlayingAudio || isLoadingAudio ? 'Stop voice output' : 'Play voice output'}
               >
                 {isLoadingAudio ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-600 dark:text-cyan-400" />
-                    <span className="text-[11px] text-cyan-700 dark:text-cyan-400 font-medium">Generating voice...</span>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                    <span className="text-[11px]">Stop (Loading...)</span>
                   </>
                 ) : isPlayingAudio ? (
                   <>
-                    <VolumeX className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 animate-pulse" />
-                    <span className="text-[11px] text-cyan-700 dark:text-cyan-400 font-medium">Stop Voice</span>
+                    <Square className="w-3 h-3 fill-current text-rose-500 animate-pulse" />
+                    <span className="text-[11px]">Stop</span>
                   </>
                 ) : (
                   <>
                     <Volume2 className="w-3.5 h-3.5" />
-                    <span>Read Aloud</span>
+                    <span>Voice Output</span>
                   </>
                 )}
               </button>

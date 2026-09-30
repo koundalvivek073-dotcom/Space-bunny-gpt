@@ -1,14 +1,4 @@
 import { AppSettings, Conversation, DEFAULT_MODEL_ID } from '../types/chat';
-import { db } from './firebase';
-import {
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  query,
-  orderBy,
-} from 'firebase/firestore';
 
 const STORAGE_KEYS = {
   CONVERSATIONS: 'spacebunny_conversations_v1',
@@ -22,7 +12,8 @@ export const SPECIFICITY_SYSTEM_PROMPT =
   '1. Specificity & Directness: Always provide concrete, highly specific answers immediately. Never give vague, generic, or evasive responses.\n' +
   '2. Ambiguity & Doubt Resolution: Whenever the user asks an ambiguous, incomplete, or doubtful question (or when there are multiple plausible interpretations), explicitly state: "Did you mean [Option A], [Option B], or [Option C]?" and provide the direct, most likely specific solution right away alongside the clarification.\n' +
   '3. Comprehensive Accuracy: Provide exact names, code snippets, mathematical formulas, versions, architectural decisions, and step-by-step reasoning where applicable.\n' +
-  '4. No Fluff: Avoid generic conversational filler. Deliver high signal-to-noise ratio in every answer.';
+  '4. Reliable URLs & Official Links: Never invent, guess, or hallucinate deep sub-paths or non-working URLs (e.g. for CBSE, government portals, or institutions). Only provide well-known, verified top-level official domain links (e.g. https://www.cbse.gov.in) and explain the exact website menu steps to reach specific circulars/pages.\n' +
+  '5. No Fluff: Avoid generic conversational filler. Deliver high signal-to-noise ratio in every answer.';
 
 const DEFAULT_SETTINGS: AppSettings = {
   model: DEFAULT_MODEL_ID,
@@ -41,7 +32,6 @@ export function loadSettings(): AppSettings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
-      // If user had older generic prompt, upgrade to the high-specificity disambiguation prompt
       systemPrompt:
         !parsed.systemPrompt || parsed.systemPrompt.includes('thoughtful, brilliantly capable AI assistant')
           ? SPECIFICITY_SYSTEM_PROMPT
@@ -95,67 +85,6 @@ export function saveActiveConversationId(id: string | null): void {
     }
   } catch (e) {
     console.error('Failed to save active chat ID', e);
-  }
-}
-
-// ----------------- Firebase Firestore Sync -----------------
-export async function syncConversationsFromFirestore(userId: string): Promise<Conversation[]> {
-  try {
-    const convCol = collection(db, 'users', userId, 'conversations');
-    const q = query(convCol, orderBy('updatedAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const list: Conversation[] = [];
-    snapshot.forEach((d) => {
-      const data = d.data();
-      list.push({
-        id: d.id,
-        title: data.title || 'Untitled Chat',
-        messages: data.messages || [],
-        createdAt: data.createdAt || Date.now(),
-        updatedAt: data.updatedAt || Date.now(),
-        pinned: !!data.pinned,
-        model: data.model || DEFAULT_MODEL_ID,
-        systemPrompt: data.systemPrompt,
-        temperature: data.temperature,
-      });
-    });
-    return list;
-  } catch (err) {
-    console.error('Failed to load conversations from Firestore:', err);
-    return [];
-  }
-}
-
-export async function saveConversationToFirestore(userId: string, conversation: Conversation): Promise<void> {
-  try {
-    const docRef = doc(db, 'users', userId, 'conversations', conversation.id);
-    await setDoc(
-      docRef,
-      {
-        id: conversation.id,
-        userId,
-        title: conversation.title,
-        messages: conversation.messages,
-        createdAt: conversation.createdAt,
-        updatedAt: conversation.updatedAt,
-        pinned: !!conversation.pinned,
-        model: conversation.model,
-        systemPrompt: conversation.systemPrompt || '',
-        temperature: conversation.temperature ?? 0.7,
-      },
-      { merge: true }
-    );
-  } catch (err) {
-    console.error('Error saving conversation to Firestore:', err);
-  }
-}
-
-export async function deleteConversationFromFirestore(userId: string, convId: string): Promise<void> {
-  try {
-    const docRef = doc(db, 'users', userId, 'conversations', convId);
-    await deleteDoc(docRef);
-  } catch (err) {
-    console.error('Error deleting conversation from Firestore:', err);
   }
 }
 

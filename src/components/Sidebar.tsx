@@ -14,21 +14,16 @@ import {
   FileText,
   User as UserIcon,
   Sparkles,
-  LogIn,
-  LogOut,
-  Cloud,
+  ShieldCheck,
   Sun,
   Moon,
 } from 'lucide-react';
 import { Conversation } from '../types/chat';
-import { auth, googleProvider } from '../services/firebase';
-import { signInWithPopup, signOut, User } from 'firebase/auth';
 import avatarImg from '../assets/images/avatar_space_bunny_1790312587845.jpg';
 
 interface SidebarProps {
   conversations: Conversation[];
   activeId: string | null;
-  currentUser: User | null;
   onSelectConversation: (id: string) => void;
   onNewChat: () => void;
   onDeleteConversation: (id: string, e: React.MouseEvent) => void;
@@ -81,7 +76,6 @@ const HighlightText: React.FC<{ text: string; query: string; className?: string 
 export const Sidebar: React.FC<SidebarProps> = ({
   conversations,
   activeId,
-  currentUser,
   onSelectConversation,
   onNewChat,
   onDeleteConversation,
@@ -198,22 +192,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const clearSearch = () => {
     setSearchQuery('');
     searchInputRef.current?.focus();
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err: any) {
-      console.error('Google Sign-In failed:', err);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (err: any) {
-      console.error('Sign-out failed:', err);
-    }
   };
 
   const renderConversationItem = (
@@ -554,51 +532,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={`p-3 border-t space-y-1.5 ${
           isLight ? 'border-slate-200/90 bg-slate-50/90' : 'border-neutral-800/80 bg-neutral-950/80'
         }`}>
-          {/* User Sign-In Banner */}
-          {currentUser ? (
-            <div className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs ${
+          {/* Private & Local Storage Status */}
+          <div
+            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs ${
               isLight ? 'bg-white border-slate-200' : 'bg-neutral-900 border-neutral-800'
-            }`}>
-              <div className="flex items-center gap-2 truncate">
-                {currentUser.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt={currentUser.displayName || 'User'}
-                    className="w-5 h-5 rounded-full object-cover"
-                  />
-                ) : (
-                  <UserIcon className="w-4 h-4 text-cyan-500" />
-                )}
-                <div className="flex flex-col truncate">
-                  <span className="truncate text-[11px] font-medium leading-none">
-                    {currentUser.displayName || 'User'}
-                  </span>
-                  <span className="text-[10px] text-cyan-500 flex items-center gap-1 font-mono">
-                    <Cloud className="w-2.5 h-2.5" /> Firestore Synced
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={handleSignOut}
-                title="Sign out"
-                className="p-1 rounded text-neutral-400 hover:text-rose-500 hover:bg-neutral-800/20 transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
+            }`}
+          >
+            <div className="flex items-center gap-1.5 truncate">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span className="truncate text-[11px] font-medium">Local & Private Storage</span>
             </div>
-          ) : (
-            <button
-              onClick={handleGoogleSignIn}
-              className={`w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                isLight
-                  ? 'bg-white hover:bg-slate-100 border-slate-200 text-sky-600'
-                  : 'bg-neutral-900 hover:bg-neutral-850 border-neutral-800 text-cyan-300'
+            <span
+              className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                isLight ? 'text-emerald-700 bg-emerald-50' : 'text-emerald-400 bg-emerald-950/60'
               }`}
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign in with Google</span>
-            </button>
-          )}
+              Offline Ready
+            </span>
+          </div>
 
           <div className="flex items-center justify-between px-2 py-1 text-xs text-neutral-400">
             <div className="flex items-center gap-1.5 truncate">
