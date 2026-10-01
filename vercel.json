@@ -1,7 +1,7 @@
 {
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "installCommand": "npm install --force",
   "framework": null,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
