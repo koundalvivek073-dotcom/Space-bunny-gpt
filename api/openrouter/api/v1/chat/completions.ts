@@ -1,8 +1,13 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { IncomingMessage, ServerResponse } from 'http';
 
-export const config = {
-  maxDuration: 60,
+type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]> };
+type VercelResponse = ServerResponse & {
+  json: (data: any) => VercelResponse;
+  status: (code: number) => VercelResponse;
+  send: (data: any) => VercelResponse;
 };
+
+export const config = { maxDuration: 60 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -10,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    let authHeader = req.headers.authorization as string;
+    let authHeader = (req.headers as any).authorization as string;
     if (!authHeader || authHeader === 'Bearer' || authHeader === 'Bearer undefined' || authHeader === 'Bearer null') {
       const serverKey = process.env.OPENROUTER_API_KEY || '';
       authHeader = `Bearer ${serverKey}`;
@@ -21,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: {
         'Content-Type': 'application/json',
         Authorization: authHeader,
-        'HTTP-Referer': (req.headers['http-referer'] as string) || 'https://space-bunny-gpt.vercel.app',
+        'HTTP-Referer': ((req.headers as any)['http-referer'] as string) || 'https://space-bunny-gpt.vercel.app',
         'X-Title': 'SpaceBunny Chat',
       },
       body: JSON.stringify(req.body),

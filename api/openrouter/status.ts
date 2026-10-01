@@ -1,4 +1,11 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { IncomingMessage, ServerResponse } from 'http';
+
+type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]> };
+type VercelResponse = ServerResponse & {
+  json: (data: any) => VercelResponse;
+  status: (code: number) => VercelResponse;
+  send: (data: any) => VercelResponse;
+};
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {

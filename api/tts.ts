@@ -1,9 +1,14 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { GoogleGenAI } from '@google/genai';
 
-export const config = {
-  maxDuration: 30,
+type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]> };
+type VercelResponse = ServerResponse & {
+  json: (data: any) => VercelResponse;
+  status: (code: number) => VercelResponse;
+  send: (data: any) => VercelResponse;
 };
+
+export const config = { maxDuration: 30 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -21,7 +26,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
     });
 
-    // Clean markdown before TTS
     const cleanText = text
       .replace(/```[\s\S]*?```/g, ' [code block omitted] ')
       .replace(/`([^`]+)`/g, '$1')
