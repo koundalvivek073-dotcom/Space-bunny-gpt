@@ -15,8 +15,6 @@ import {
   User as UserIcon,
   Sparkles,
   ShieldCheck,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { Conversation } from '../types/chat';
 import avatarImg from '../assets/images/avatar_space_bunny_1790312587845.jpg';
@@ -34,7 +32,6 @@ interface SidebarProps {
   onToggleSidebar: () => void;
   currentModel: string;
   theme: 'dark' | 'light';
-  onToggleTheme: () => void;
 }
 
 interface SearchMatch {
@@ -86,7 +83,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleSidebar,
   currentModel,
   theme,
-  onToggleTheme,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -365,56 +361,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-64 md:w-68 flex flex-col border-r transition-transform duration-200 ease-in-out ${
+        className={`fixed md:relative inset-y-0 left-0 z-40 flex flex-col border-r transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${
           isLight
-            ? 'bg-slate-50/90 backdrop-blur-md border-slate-200/90 text-slate-800'
-            : 'bg-neutral-950/85 backdrop-blur-md border-neutral-800/80 text-neutral-100'
-        } ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+            ? 'bg-slate-50/95 backdrop-blur-md border-slate-200/90 text-slate-800'
+            : 'bg-neutral-950/90 backdrop-blur-md border-neutral-800/80 text-neutral-100'
+        } ${
+          isOpen
+            ? 'w-64 md:w-68 translate-x-0 opacity-100'
+            : 'w-0 -translate-x-full md:w-0 md:-translate-x-full opacity-0 pointer-events-none border-none'
+        }`}
       >
-        {/* Top Header */}
-        <div className={`flex items-center justify-between p-3.5 border-b ${
-          isLight ? 'border-slate-200/90' : 'border-neutral-800/80'
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <img
-              src={avatarImg}
-              alt="Space Bunny"
-              referrerPolicy="no-referrer"
-              className="w-7 h-7 rounded-lg object-cover ring-1 ring-cyan-500/30"
-            />
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm tracking-tight flex items-center gap-1.5">
-                SpaceBunny
-              </span>
-              <span className="text-[10px] text-cyan-500 font-mono flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                Alpha 1M Context
-              </span>
+        <div className="flex flex-col h-full w-64 md:w-68 shrink-0">
+          {/* Top Header */}
+          <div className={`flex items-center justify-between p-3.5 border-b shrink-0 ${
+            isLight ? 'border-slate-200/90' : 'border-neutral-800/80'
+          }`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src={avatarImg}
+                alt="Space Bunny"
+                referrerPolicy="no-referrer"
+                className="w-7 h-7 rounded-lg object-cover ring-1 ring-cyan-500/30 shrink-0"
+              />
+              <div className="flex flex-col min-w-0">
+                <span className="font-semibold text-sm tracking-tight flex items-center gap-1.5 truncate">
+                  SpaceBunny
+                </span>
+                <span className="text-[10px] text-cyan-500 font-mono flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                  Alpha 1M Context
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onToggleSidebar}
+                title="Close sidebar"
+                className={`p-1.5 rounded-md transition-colors ${
+                  isLight
+                    ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/80'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                }`}
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-1">
-            {/* Theme Toggle Button in Header */}
-            <button
-              onClick={onToggleTheme}
-              title={`Switch to ${isLight ? 'Dark' : 'Light'} Mode`}
-              className={`p-1.5 rounded-lg transition-colors ${
-                isLight
-                  ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/80'
-                  : 'text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800'
-              }`}
-            >
-              {isLight ? <Moon className="w-4 h-4 text-amber-600" /> : <Sun className="w-4 h-4 text-amber-400" />}
-            </button>
-
-            <button
-              onClick={onToggleSidebar}
-              className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors md:hidden"
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
 
         {/* Action Button: New Chat & Search Input */}
         <div className="p-3 space-y-2">
@@ -578,6 +571,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Settings & Model
             </span>
           </button>
+        </div>
         </div>
       </aside>
     </>

@@ -330,19 +330,19 @@ export const Extreme3DBackground: React.FC<Extreme3DBackgroundProps> = ({
       mousePosRef.current.y += (mousePosRef.current.targetY - mousePosRef.current.y) * 0.04;
 
       if (cameraRef.current) {
-        // Camera responds both to mouse movement, generation surge and dynamic scroll depth
-        const genJitter = generatingActive ? Math.sin(elapsedTime * 8) * 0.6 : 0;
-        cameraRef.current.position.x = mousePosRef.current.x + genJitter;
-        cameraRef.current.position.y = mousePosRef.current.y - (scrollNorm * 0.025);
-        cameraRef.current.position.z = 95 + Math.min(scrollNorm * 0.035, 40) - (generatingActive ? 6 : 0);
-        cameraRef.current.lookAt(0, -(scrollNorm * 0.015), 0);
+        // Camera responds gracefully to subtle mouse movement and generation surge without drifting out of frame
+        const genJitter = generatingActive ? Math.sin(elapsedTime * 8) * 0.4 : 0;
+        cameraRef.current.position.x = mousePosRef.current.x * 0.5 + genJitter;
+        cameraRef.current.position.y = mousePosRef.current.y * 0.4;
+        cameraRef.current.position.z = 90 - (generatingActive ? 5 : 0);
+        cameraRef.current.lookAt(0, 0, 0);
       }
 
-      // Group level responsive tilt and rotation driven by user scroll & generation surge
+      // Group level graceful tilt and rotation driven by user scroll & generation surge
       if (coreGroup) {
-        coreGroup.rotation.x = (scrollNorm * 0.0018);
-        coreGroup.rotation.y = (scrollNorm * 0.0012) + (generatingActive ? elapsedTime * 0.04 : 0);
-        coreGroup.position.y = (scrollNorm * 0.02);
+        coreGroup.rotation.x = Math.sin(elapsedTime * 0.2) * 0.08 + (scrollNorm * 0.0004);
+        coreGroup.rotation.y = elapsedTime * 0.03 + (generatingActive ? elapsedTime * 0.04 : 0);
+        coreGroup.position.set(0, 0, 0);
       }
 
       // Gyroscopic Rotations (faster and more vibrant when outputting)
@@ -442,28 +442,26 @@ export const Extreme3DBackground: React.FC<Extreme3DBackgroundProps> = ({
       <div
         ref={mountRef}
         aria-hidden="true"
-        className={`fixed inset-0 pointer-events-none z-0 overflow-hidden select-none transition-opacity duration-700 ${
-          isLight ? 'opacity-85' : 'opacity-85'
-        }`}
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none transition-opacity duration-700 opacity-100"
       />
 
-      {/* Cybernetic Horizon Gradient Underlay */}
+      {/* Centered Space Atmosphere Gradient Underlay */}
       <div
         aria-hidden="true"
         className={`fixed inset-0 pointer-events-none z-0 transition-colors duration-500 ${
           isLight
-            ? 'bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(14,165,233,0.18),rgba(248,250,252,0.92))]'
-            : 'bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(6,182,212,0.12),rgba(255,255,255,0))]'
+            ? 'bg-[radial-gradient(circle_at_50%_50%,rgba(14,165,233,0.12),rgba(248,250,252,0.7)_80%)]'
+            : 'bg-[radial-gradient(circle_at_50%_50%,rgba(6,182,212,0.1),rgba(9,10,16,0.6)_80%)]'
         }`}
       />
 
       {/* Interactive 3D HUD Floating Controller Badge */}
       {interactive && (
         <div
-          className={`fixed bottom-4 left-4 md:left-72 z-30 flex items-center gap-1.5 p-1 rounded-xl backdrop-blur-md shadow-2xl text-xs transition-all ${
+          className={`fixed bottom-4 left-4 z-30 flex items-center gap-1.5 p-1 rounded-xl backdrop-blur-md shadow-2xl text-xs transition-all ${
             isLight
-              ? 'bg-white/85 border border-slate-300 text-slate-900 shadow-slate-300/40'
-              : 'bg-neutral-950/80 border border-neutral-800/80 text-neutral-300'
+              ? 'bg-white/90 border border-slate-300 text-slate-900 shadow-slate-300/40'
+              : 'bg-neutral-950/85 border border-neutral-800 text-neutral-200'
           }`}
         >
           <button

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   PanelLeft,
   ArrowUp,
@@ -18,6 +18,7 @@ import {
   Loader2,
   Sun,
   Moon,
+  ImagePlus,
 } from 'lucide-react';
 import { ChatMessage, Conversation, AVAILABLE_MODELS, DEFAULT_MODEL_ID } from '../types/chat';
 import { ChatMessageItem } from './ChatMessageItem';
@@ -25,7 +26,7 @@ import avatarImg from '../assets/images/avatar_space_bunny_1790312587845.jpg';
 
 interface ChatAreaProps {
   conversation: Conversation | null;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, images?: string[]) => void;
   onStopStreaming: () => void;
   isStreaming: boolean;
   streamingReasoning: string;
@@ -74,6 +75,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 }) => {
   const [inputText, setInputText] = useState('');
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -90,6 +92,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -123,16 +126,17 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if ((!inputText.trim() && !attachedFile) || isStreaming) return;
+    if ((!inputText.trim() && !attachedFile && attachedImages.length === 0) || isStreaming) return;
 
     let fullPrompt = inputText.trim();
     if (attachedFile) {
       fullPrompt = `[Attached File: ${attachedFile.name}]\n\`\`\`\n${attachedFile.content}\n\`\`\`\n\n${fullPrompt}`;
     }
 
-    onSendMessage(fullPrompt);
+    onSendMessage(fullPrompt, attachedImages.length > 0 ? attachedImages : undefined);
     setInputText('');
     setAttachedFile(null);
+    setAttachedImages([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -162,6 +166,51 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     reader.readAsText(file);
     e.target.value = '';
   };
+
+  // Image file reader helper
+  const readImageAsDataURL = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const MAX = 4;
+    const remaining = MAX - attachedImages.length;
+    if (remaining <= 0) { alert('Maximum 4 images per message.'); return; }
+    const toProcess = files.slice(0, remaining);
+    const dataUrls = await Promise.all(
+      toProcess.filter(f => f.size <= 10 * 1024 * 1024).map(readImageAsDataURL)
+    );
+    setAttachedImages(prev => [...prev, ...dataUrls]);
+    e.target.value = '';
+  };
+
+  // Paste image from clipboard
+  const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter(item => item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+    e.preventDefault();
+    const MAX = 4;
+    const remaining = MAX - attachedImages.length;
+    const toProcess = imageItems.slice(0, remaining);
+    const dataUrls: string[] = [];
+    for (const item of toProcess) {
+      const file = item.getAsFile();
+      if (file) {
+        const dataUrl = await readImageAsDataURL(file);
+        dataUrls.push(dataUrl);
+      }
+    }
+    if (dataUrls.length > 0) {
+      setAttachedImages(prev => [...prev, ...dataUrls]);
+    }
+  }, [attachedImages]);
 
   // Voice recording and Gemini-3.5-transcribe
   const handleToggleRecord = async () => {
@@ -530,6 +579,29 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         }`}
       >
         <div className="max-w-4xl mx-auto space-y-2">
+          {/* Image Previews */}
+          {attachedImages.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {attachedImages.map((img, idx) => (
+                <div key={idx} className="relative group/img">
+                  <img
+                    src={img}
+                    alt={`Preview ${idx + 1}`}
+                    className={`w-20 h-20 object-cover rounded-xl border shadow-sm ${
+                      isLight ? 'border-slate-300' : 'border-neutral-700'
+                    }`}
+                  />
+                  <button
+                    onClick={() => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity shadow"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* File Attachment Pill */}
           {attachedFile && (
             <div
@@ -561,11 +633,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder={
                 isRecording
                   ? 'Listening to microphone...'
                   : isTranscribing
                   ? 'Transcribing audio...'
+                  : attachedImages.length > 0
+                  ? 'Describe what you want to do with the image(s)... (optional)'
                   : 'Ask Space Bunny anything... (Shift+Enter for newline)'
               }
               rows={1}
@@ -577,6 +652,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             {/* Bottom Input Actions */}
             <div className="flex items-center justify-between pt-1 px-1">
               <div className="flex items-center gap-1.5">
+                {/* Hidden inputs */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -584,10 +660,35 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   accept=".txt,.js,.ts,.tsx,.py,.json,.csv,.md,.html,.css"
                   className="hidden"
                 />
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  onChange={handleImageUpload}
+                  accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                  multiple
+                  className="hidden"
+                />
+                {/* Image attach button */}
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  title="Attach image (or paste from clipboard)"
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    attachedImages.length > 0
+                      ? isLight ? 'text-sky-600 bg-sky-50 hover:bg-sky-100' : 'text-cyan-400 bg-cyan-950/40 hover:bg-cyan-950/70'
+                      : isLight ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800'
+                  }`}
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  {attachedImages.length > 0 && (
+                    <span className="sr-only">{attachedImages.length} image(s) attached</span>
+                  )}
+                </button>
+                {/* File (text/code) attach button */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  title="Attach file (.txt, code, json, md)"
+                  title="Attach text / code file"
                   className={`p-1.5 rounded-lg transition-colors ${
                     isLight ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800'
                   }`}
@@ -650,7 +751,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   <button
                     type="button"
                     onClick={() => handleSubmit()}
-                    disabled={!inputText.trim() && !attachedFile}
+                    disabled={!inputText.trim() && !attachedFile && attachedImages.length === 0}
                     className={`p-2 rounded-xl transition-all font-semibold shadow-xs disabled:opacity-30 ${
                       isLight
                         ? 'bg-sky-600 hover:bg-sky-500 text-white'

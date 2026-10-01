@@ -246,15 +246,17 @@ export default function App() {
   };
 
   // Send message
-  const handleSendMessage = async (text: string) => {
-    if (!text.trim() || isStreaming) return;
+  const handleSendMessage = async (text: string, images?: string[]) => {
+    const hasImages = images && images.length > 0;
+    const cleanText = text.trim();
+    if ((!cleanText && !hasImages) || isStreaming) return;
 
     let targetConv = activeConversation;
     let isBrandNew = false;
 
     if (!targetConv) {
       isBrandNew = true;
-      const initialTitle = text.slice(0, 32).trim() || 'New Chat';
+      const initialTitle = cleanText.slice(0, 32).trim() || (hasImages ? 'Image Analysis' : 'New Chat');
       targetConv = {
         id: `conv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         title: initialTitle,
@@ -270,13 +272,14 @@ export default function App() {
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}_user`,
       role: 'user',
-      content: text,
+      content: cleanText || (hasImages ? 'Analyze and describe this image.' : ''),
+      images: hasImages ? images : undefined,
       timestamp: Date.now(),
     };
 
     let updatedTitle = targetConv.title;
     if (targetConv.title === 'New Chat' || isBrandNew) {
-      updatedTitle = text.split('\n')[0].slice(0, 36).trim() || 'Chat with Space Bunny';
+      updatedTitle = cleanText.split('\n')[0].slice(0, 36).trim() || (hasImages ? 'Image Analysis' : 'Chat with Space Bunny');
     }
 
     const updatedMessages = [...targetConv.messages, userMessage];
@@ -298,16 +301,34 @@ export default function App() {
       );
     }
 
-    // Default flow: Space Bunny Alpha on OpenRouter
-    const apiMessages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
+    // Prepare multimodal / standard messages for OpenRouter
+    const apiMessages: Array<{
+      role: 'user' | 'assistant' | 'system';
+      content: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
+    }> = [];
+
     if (settings.systemPrompt?.trim()) {
       apiMessages.push({ role: 'system', content: settings.systemPrompt.trim() });
     }
+
     for (const m of updatedMessages) {
-      apiMessages.push({
-        role: m.role,
-        content: m.content,
-      });
+      if (m.role === 'user' && m.images && m.images.length > 0) {
+        apiMessages.push({
+          role: 'user',
+          content: [
+            { type: 'text', text: m.content || 'Analyze and describe this image.' },
+            ...m.images.map((img) => ({
+              type: 'image_url' as const,
+              image_url: { url: img },
+            })),
+          ],
+        });
+      } else {
+        apiMessages.push({
+          role: m.role,
+          content: m.content,
+        });
+      }
     }
 
     setIsStreaming(true);
@@ -465,7 +486,6 @@ export default function App() {
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         currentModel={selectedModel}
         theme={settings.theme}
-        onToggleTheme={handleToggleTheme}
       />
 
       {/* Main Chat Area with TTS Read Aloud, Speech Dictation & Scroll tracker */}

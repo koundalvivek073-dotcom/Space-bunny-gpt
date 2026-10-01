@@ -2,6 +2,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  images?: string[];
   reasoning?: string;
   reasoningDurationMs?: number;
   timestamp: number;

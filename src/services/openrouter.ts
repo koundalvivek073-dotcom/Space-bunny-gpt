@@ -1,9 +1,20 @@
 import { DEFAULT_MODEL_ID } from '../types/chat';
 import { loadSettings } from './storage';
 
+export interface ChatMessageContentPart {
+  type: 'text' | 'image_url';
+  text?: string;
+  image_url?: { url: string };
+}
+
+export interface StreamChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string | ChatMessageContentPart[];
+}
+
 export interface StreamChatParams {
   model?: string;
-  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+  messages: StreamChatMessage[];
   temperature?: number;
   maxTokens?: number;
   signal?: AbortSignal;

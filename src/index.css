@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
@@ -17,7 +18,7 @@
     --bg-sidebar: #f1f5f9;
     --border-color: #cbd5e1;
     --text-primary: #0f172a;
-    --text-muted: #475569;
+    --text-muted: #334155;
     --accent: #0284c7;
   }
 
@@ -30,6 +31,43 @@
   code, pre, kbd {
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+}
+
+/* Explicit Light Mode AI Output styling to guarantee crisp black text */
+html.light .markdown-content {
+  color: #0f172a !important;
+}
+html.light .markdown-content p,
+html.light .markdown-content li,
+html.light .markdown-content span,
+html.light .markdown-content td,
+html.light .markdown-content th {
+  color: #0f172a !important;
+}
+html.light .markdown-content h1,
+html.light .markdown-content h2,
+html.light .markdown-content h3,
+html.light .markdown-content h4,
+html.light .markdown-content h5,
+html.light .markdown-content h6,
+html.light .markdown-content strong {
+  color: #020617 !important;
+}
+html.light .markdown-content a {
+  color: #0284c7 !important;
+}
+html.light .markdown-content code {
+  color: #0e7490 !important;
+  background-color: #e2e8f0 !important;
+}
+html.light .markdown-content pre code {
+  color: #f1f5f9 !important;
+  background-color: transparent !important;
+}
+html.light .markdown-content blockquote {
+  color: #1e293b !important;
+  background-color: #f1f5f9 !important;
+  border-left-color: #0284c7 !important;
 }
 
 /* Custom sleek scrollbar */

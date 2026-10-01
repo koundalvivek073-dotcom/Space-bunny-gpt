@@ -140,19 +140,39 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               </div>
             </form>
           ) : (
-            <div className="relative group/bubble">
-              <div
-                className={`px-4 py-3 rounded-2xl rounded-tr-xs text-[15px] leading-relaxed shadow-sm whitespace-pre-wrap break-words border font-normal ${
-                  isLight
-                    ? 'bg-sky-600 text-white border-sky-500 shadow-sky-600/10'
-                    : 'bg-neutral-800 text-neutral-100 border-neutral-700/60'
-                }`}
-              >
-                {message.content}
-              </div>
+            <div className="relative group/bubble flex flex-col items-end gap-2">
+              {/* Attached images */}
+              {message.images && message.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 justify-end">
+                  {message.images.map((img, idx) => (
+                    <div key={idx} className="relative group/img">
+                      <img
+                        src={img}
+                        alt={`Attached image ${idx + 1}`}
+                        className={`max-w-[240px] max-h-[200px] rounded-xl object-cover shadow-md border cursor-pointer hover:opacity-90 transition-opacity ${
+                          isLight ? 'border-sky-300' : 'border-neutral-700'
+                        }`}
+                        onClick={() => window.open(img, '_blank')}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Text bubble */}
+              {message.content && (
+                <div
+                  className={`px-4 py-3 rounded-2xl rounded-tr-xs text-[15px] leading-relaxed shadow-sm whitespace-pre-wrap break-words border font-normal ${
+                    isLight
+                      ? 'bg-sky-600 text-white border-sky-500 shadow-sky-600/10'
+                      : 'bg-neutral-800 text-neutral-100 border-neutral-700/60'
+                  }`}
+                >
+                  {message.content}
+                </div>
+              )}
 
               {/* Action buttons on hover */}
-              <div className="opacity-0 group-hover/bubble:opacity-100 transition-opacity flex items-center gap-1.5 mt-1 justify-end">
+              <div className="opacity-0 group-hover/bubble:opacity-100 transition-opacity flex items-center gap-1.5 justify-end">
                 <button
                   onClick={() => setIsEditing(true)}
                   title="Edit prompt"
