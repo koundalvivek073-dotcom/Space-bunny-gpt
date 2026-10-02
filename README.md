@@ -32,7 +32,7 @@ A high-performance, precision AI assistant featuring interactive 3D WebGL spatia
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- [Node.js](https://nodejs.org/) (v20.19+ or v22.12+)
 - `npm` or `bun`
 
 ### 2. Clone the Repository
